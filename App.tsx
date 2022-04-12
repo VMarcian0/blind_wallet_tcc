@@ -19,6 +19,7 @@ const textureDims = Platform.OS === 'ios' ?
 };
 
 const initialiseTensorflow = async () => {
+  tf.env().set('WEBGL_PACK_DEPTHWISECONV', false);
   await tf.ready();
   tf.getBackend();
 }
