@@ -52,18 +52,23 @@ export default function App() {
   if(!net){
     return <Text>Model not loaded</Text>;
   }
-  
+
+  let frame = 0;
+  const computeRecognitionEveryNFrames = 60;
   const handleCameraStream =(images:IterableIterator<tf.Tensor3D>) => {
     const loop = async () => {
       if(net) {
-        const nextImageTensor = images.next().value;
-        if(nextImageTensor) {
-          //! Classificação acontece aqui
-          const objects = await net.classify(nextImageTensor);
-          console.log(objects.map(object => object.className));
-          tf.dispose([nextImageTensor]);
+        if(frame % computeRecognitionEveryNFrames === 0){
+          const nextImageTensor = images.next().value;
+          if(nextImageTensor) {
+            //! Classificação acontece aqui
+            const objects = await net.classify(nextImageTensor);
+            console.log(objects.map(object => object));
+            tf.dispose([nextImageTensor]);
+          }
         }
       }
+      frame += 1;
       requestAnimationFrame(loop);
     }
     loop();
