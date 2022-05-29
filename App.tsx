@@ -5,6 +5,7 @@ import * as tf from "@tensorflow/tfjs";
 import { cameraWithTensors } from '@tensorflow/tfjs-react-native';
 import { Platform } from 'react-native';
 import * as mobilenet from '@tensorflow-models/mobilenet';
+import {loadGraphModel} from '@tensorflow/tfjs-converter';
 
 const TensorCamera = cameraWithTensors(Camera);
 // Definitons of textureDims
@@ -24,10 +25,23 @@ const initialiseTensorflow = async () => {
   tf.getBackend();
 }
 
+const loadModel = async (model:tf.GraphModel | undefined) => {
+  const MODEL_URL = 'https://teachablemachine.withgoogle.com/models/f01oyHcWN/model.json';
+  try{
+    model = await loadGraphModel(MODEL_URL);
+    
+    return model;
+  }
+  catch(error:any){
+    console.error('AQUI FDP',error);
+  }
+}
+
 export default function App() {
   const [hasPermission, setHasPermission] = useState(null || false);
   const [type, setType] = useState(Camera.Constants.Type.back);
-  const [net, setNet] = useState<mobilenet.MobileNet>();
+  //const [net, setNet] = useState<mobilenet.MobileNet>();
+  const [model, setModel] = useState<tf.GraphModel>();
   
   useEffect(() => {
     (async () => {
@@ -37,8 +51,8 @@ export default function App() {
       // initialise Tensorflow
       await initialiseTensorflow();
       // load the model
-      setNet(await mobilenet.load());
-
+      // setNet(await mobilenet.load());
+      setModel(await loadModel(model));
     })();
   }, []);
   
@@ -48,22 +62,27 @@ export default function App() {
   if (hasPermission === false) {
     return <Text>No access to camera</Text>;
   }
-  
-  if(!net){
+
+  if(!model){
     return <Text>Model not loaded</Text>;
   }
-
+  
+/*   if(!net){
+    return <Text>Model not loaded</Text>;
+  }
+ */
   let frame = 0;
   const computeRecognitionEveryNFrames = 60;
   const handleCameraStream =(images:IterableIterator<tf.Tensor3D>) => {
     const loop = async () => {
-      if(net) {
+      if(model) {
         if(frame % computeRecognitionEveryNFrames === 0){
           const nextImageTensor = images.next().value;
           if(nextImageTensor) {
             //! Classificação acontece aqui
-            const objects = await net.classify(nextImageTensor);
-            console.log(objects.map(object => object));
+            //const objects = await net.classify(nextImageTensor);
+            const result = model.predict(nextImageTensor) as tf.NamedTensorMap;
+            console.log(result);
             tf.dispose([nextImageTensor]);
           }
         }
